@@ -40,6 +40,7 @@ encoding=''
 recognition = ''
 for i in range(len(data)):
     for j in range(len(data[i])):
+        
         guide = np.any(np.isnan(data[i][j].encoding),axis=1)
         
         if np.sum(guide)>len(data[i][j].encoding)*0.2:
@@ -67,47 +68,47 @@ with open("recognition_removed.txt", 'w') as output:
 
 results={'control':{},'patient': {}}
 
-max_control=(0,-np.inf)
-max_patient=(0,-np.inf)
-min_control=(0,np.inf)
-min_patient=(0,np.inf)
-
 for i in range(len(data)):
     group = data[i][0].group
     subject = data[i][0].subject
-    results[group][subject] = 0
     for j in range(len(data[i])):
-        results[group][subject] += data[i][j].isCorrect
+        trial = data[i][j].trial.split('_')[1]
+        if trial not in list(results[group].keys()):
+            results[group][trial] = []
+        results[group][trial] += [data[i][j].isCorrect]
+
+for g in results.keys():
+    for t in results[g].keys():
+        results[g][t]=np.mean(results[g][t])
+
+worst_trials_control = [k for k,v in results['control'].items() if v ==np.min(list(results['control'].values()))]
+best_trials_patient = [k for k,v in results['patient'].items() if v ==np.max(list(results['patient'].values()))]
+
+print(worst_trials_control, np.min(list(results['control'].values())))
+print(best_trials_patient, np.max(list(results['patient'].values())))
+
+
+for i in range(len(data)):
+    indexes = []
+    for j in range(len(data[i])):
+        if data[i][j].trial.split('_')[1] in worst_trials_control+best_trials_patient:
+            indexes = [j] + indexes
     
-    if subject%1==0:
-        if group == 'control':
-            max_control = (i,results[group][subject]) if results[group][subject]>max_control[1] else max_control
-            min_control = (i,results[group][subject]) if results[group][subject]<min_control[1] else min_control
-        else:
-            max_patient = (i,results[group][subject]) if results[group][subject]>max_patient[1] else max_patient
-            min_patient = (i,results[group][subject]) if results[group][subject]<min_patient[1] else min_patient
-            
-print(f'Worst Performer - Patients: {data[min_patient[0]][0].subject} with {min_patient[1]} correct answers')
-print(f'Best Performer - Patients: {data[max_patient[0]][0].subject} with {max_patient[1]} correct answers')
-print(f'Worst Performer - Controls: {data[min_control[0]][0].subject} with {min_control[1]} correct answers')
-print(f'Best Performer - Controls: {data[max_control[0]][0].subject} with {max_control[1]} correct answers')
-
-data.pop(min_patient[0])
-data.pop(max_patient[0])
-data.pop(min_control[0])
-data.pop(max_control[0])
-
+    for j in indexes:
+        data[i].pop(j)
+        
 
 # SAVE DATA
 
 for d in data:
     group=d[0].group
     subject=int(d[0].subject//1)
-    directory = 'first/' if d[0].subject%1==0 else 'second/'
+    # directory = 'first/' if d[0].subject%1==0 else 'second/'
+    directory = ''
     
     for i in range(len(d)):
         if d[i].encoding is not None:
-            d[i].build_scanpath(crop = ((1600-700)/2, (900-700)/2,1600-(1600-700)/2, 900-(900-700)/2), resize=(512,512))
-    
+            d[i].build_scanpath(resize=(512,512))
+            d[i].build_heatmap(distance=60, angle=1, resize=(512,512))
     with open(f'{PROCCESS_DIR}{directory}{group}_s{subject}.pkl', 'wb') as file:
         pickle.dump(d, file)

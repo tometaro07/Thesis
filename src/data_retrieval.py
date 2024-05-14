@@ -17,6 +17,7 @@ from data_tools import *
 DATA_DIR = '/home/tometaro/Documents/Thesis/data/'
 UNPROCESS_DIR = '/home/tometaro/Documents/Thesis/processed_data/raw/'
 
+
 for group in ['control', 'patient']:
     for subject in os.listdir(f'{DATA_DIR}tsv/{group}'):
         with open(f'{DATA_DIR}tsv/{group}/{subject}', 'r') as tsv:
@@ -38,6 +39,8 @@ for group in ['control', 'patient']:
                 imageL_ind = header.index('image_left')
 
                 imageLType_ind = header.index('memory_left')
+                
+                nlist_ind = header.index('nlist')
 
                 data = {}
                 starting = False
@@ -54,7 +57,8 @@ for group in ['control', 'patient']:
 
                         if behavioural_line[task_ind] == "E":
                             second_time = 0 if subject.count('_')==1 else 0.5
-                            data[curr_Trial] = Trial(behavioural_line[group_ind], int(behavioural_line[subject_ind])+second_time, int(behavioural_line[age_ind]), int(behavioural_line[education_ind]), curr_Trial)
+                            data[curr_Trial] = Trial(behavioural_line[group_ind], int(behavioural_line[subject_ind])+second_time, 
+                                                    int(behavioural_line[age_ind]), int(behavioural_line[education_ind]), behavioural_line[nlist_ind]+'_'+behavioural_line[trial_ind])
 
                         starting = True
                         time = None
@@ -83,7 +87,16 @@ for group in ['control', 'patient']:
                             time = int(l[1])
 
                         if l[3] == '7':
-                            rawData+=[[int(l[1])-time]+l[6:8]+l[11:14]+l[18:21]]
+                            avg = l[6:8]
+                            
+                            if behavioural_line[task_ind] == "E":
+                                avg[0] = avg[0] if abs(float(avg[0])-800)<=350 else np.nan
+                                avg[1] = avg[1] if abs(float(avg[1])-450)<=350 else np.nan
+                            elif behavioural_line[task_ind] == "R":
+                                avg[0] = avg[0] if abs(float(avg[0])-800)<=700 else np.nan
+                                avg[1] = avg[1] if abs(float(avg[1])-450)<=280 else np.nan
+                            
+                            rawData+=[[int(l[1])-time]+avg+l[11:14]+l[18:21]]
                         else:
                             rawData+=[[int(l[1])-time]+[np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]]
 
