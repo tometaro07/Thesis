@@ -103,12 +103,13 @@ for i in range(len(data)):
 for d in data:
     group=d[0].group
     subject=int(d[0].subject//1)
+    alter = '' if d[0].subject%1 == 0 else '_5'
     # directory = 'first/' if d[0].subject%1==0 else 'second/'
     directory = ''
     
     for i in range(len(d)):
         if d[i].encoding is not None:
             d[i].build_scanpath(resize=(512,512))
-            d[i].build_heatmap(distance=60, angle=1, resize=(512,512))
-    with open(f'{PROCCESS_DIR}{directory}{group}_s{subject}.pkl', 'wb') as file:
+            d[i].build_heatmap(distance=57, angle=1, resize=(512,512))
+    with open(f'{PROCCESS_DIR}{directory}{group}_s{subject}{alter}.pkl', 'wb') as file:
         pickle.dump(d, file)
